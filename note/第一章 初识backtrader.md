@@ -65,35 +65,3 @@ plot不带candle参数：
 ![image-20221128161712735](assets/image-20221128161712735.png)
 
 注：在绘制的图像中可以使用🔍进行图像的放大。点击<img src="assets/image-20221128161819259.png" alt="image-20221128161819259" style="zoom:50%;" />将视图恢复至原始视图。
-
-### Strategy类的生命周期
-
-<img src="assets/image-20221128162424986.png" alt="image-20221128162424986" style="zoom:50%;" />
-
-```python
-class MyStrategy(bt.Strategy):
-    def __init__(self):
-        print('__init__()')
-
-    def start(self):
-        print('start()')
-
-    def prenext(self):
-        print('prenext()')
-
-    def nextstart(self):
-        print('nextstart()')
-        
-	  # 至关重要
-    def next(self):
-        print('next()')
-
-    def stop(self):
-        print('stop()')
-```
-
-MyStrategy中有这些方法可以被重写，运行后结果：
-
-<img src="assets/image-20221128163643775.png" alt="image-20221128163643775" style="zoom:50%;" />
-
-注：prenext()在存在20日均线的时候，就可以被执行。到时候再看。而此例子中，并无prenext()调用。
