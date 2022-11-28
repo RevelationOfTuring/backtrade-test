@@ -12,7 +12,7 @@ def get_data(code='600519', start='2017-01-01', end='2020-01-01'):
     df.index = pd.to_datetime(df.date)
     # 增添open interest这一列（backtrader要求数据必须有该列）
     df['openinterest'] = 0
-    # 按照backtrader对数据的要求，整合列
+    # 按照backtrader对数据的要求，整合列(顺序必须是下面的顺序ohlcvo)
     df = df[['open', 'high', 'low', 'close', 'volume', 'openinterest']]
     return df
 
