@@ -1,22 +1,3 @@
-## 第四章 回测的设置
-
-### 1. 手续费、滑点、保证金的设置
-
-<img src="assets/image-20221201150505435.png" alt="image-20221201150505435" style="zoom:50%;" />
-
-mult点数——股指期货一点是300元。
-
-name用来指定这个规则适用于哪个datafeed。如果不指定，这个规则就适用于所有datafeed。
-
-```python
-cerebro.broker.setcommission(commission=2.0, margin=2000.0, mult=10.0)
-```
-
-表示该期货每一份合约手续费是2块，保证金是2000块，该期货一点是10元。
-
-股票是没有保证金和点数的。
-
-```python
 import backtrader as bt
 import pandas as pd
 import datetime
@@ -70,7 +51,18 @@ class MyStrategy(bt.Strategy):
             self.order = self.sell()
 
 
-cerebro = bt.Cerebro()
+# 关闭默认添加的observers
+cerebro = bt.Cerebro(stdstats=False)
+# 资产净值
+cerebro.addobserver(bt.observers.Value)
+# 平仓信号点标记
+cerebro.addobserver(bt.observers.Trades)
+# 交易点位标记
+cerebro.addobserver(bt.observers.BuySell)
+# 净值曲线的回撤(往往不在observer里面观察回撤，而是在analyzer中)
+cerebro.addobserver(bt.observers.DrawDown)
+# 持仓每日带来的收益
+cerebro.addobserver(bt.observers.TimeReturn)
 
 # 读取数据的方法1
 df = pd.read_csv('data/rbfi_day.csv')
@@ -90,45 +82,15 @@ cerebro.adddata(brf_daily, name='brf')
 
 cerebro.addstrategy(MyStrategy)
 
-# 设置起始现金2w元
-cerebro.broker.setcash(20000.0)
-# 设置期货模式的手续费
-cerebro.broker.setcommission(commission=2.0, margin=2000.0, name='brf')
-
-# 设置股票模式的手续费
-# cerebro.broker.setcommission(commission=0.005, name='brf')
-
 cerebro.run()
+
+# 查看仓位信息
+pos = cerebro.broker.getposition(brf_daily)
+
+print(f'持仓大小: {pos.size}')
+print(f'持仓均价: {pos.price}')
+print(f'资产净值: {cerebro.broker.get_value()}')
+print(f'可用现金: {cerebro.broker.get_cash()}')
 
 # 曲线为蜡烛图
 cerebro.plot(style='candle')
-```
-
-![image-20221201154058642](assets/image-20221201154058642.png)
-
-改成股票模式，手续费为万3：
-
-```python
-cerebro.broker.setcommission(commission=0.0003, name='brf')
-```
-
-![image-20221201154314466](assets/image-20221201154321619.png)
-
-![image-20221201154314466](assets/image-20221201154314466.png)
-
-滑点就是冲击成本。
-
-cerebro.broker.set_slippage_fixed(fixed=5)，表示每一买单，都会多花5块钱；如果是卖单，都会少卖5块钱。即每一笔交易都会少10元（一买一卖）。
-
-固定滑点：
-
-cerebro.broker.set_slippage_fixed(fixed=5)
-
-<img src="assets/image-20221201160035027.png" alt="image-20221201160035027" style="zoom:50%;" />
-
-cerebro.broker.set_slippage_perc(perc=0.0005)
-
-<img src="assets/image-20221201160059426.png" alt="image-20221201160059426" style="zoom:50%;" />
-
-### 2. Filler设置和演示
-

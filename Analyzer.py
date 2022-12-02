@@ -1,22 +1,3 @@
-## 第四章 回测的设置
-
-### 1. 手续费、滑点、保证金的设置
-
-<img src="assets/image-20221201150505435.png" alt="image-20221201150505435" style="zoom:50%;" />
-
-mult点数——股指期货一点是300元。
-
-name用来指定这个规则适用于哪个datafeed。如果不指定，这个规则就适用于所有datafeed。
-
-```python
-cerebro.broker.setcommission(commission=2.0, margin=2000.0, mult=10.0)
-```
-
-表示该期货每一份合约手续费是2块，保证金是2000块，该期货一点是10元。
-
-股票是没有保证金和点数的。
-
-```python
 import backtrader as bt
 import pandas as pd
 import datetime
@@ -70,6 +51,7 @@ class MyStrategy(bt.Strategy):
             self.order = self.sell()
 
 
+# 关闭默认添加的observers
 cerebro = bt.Cerebro()
 
 # 读取数据的方法1
@@ -90,45 +72,61 @@ cerebro.adddata(brf_daily, name='brf')
 
 cerebro.addstrategy(MyStrategy)
 
-# 设置起始现金2w元
-cerebro.broker.setcash(20000.0)
-# 设置期货模式的手续费
-cerebro.broker.setcommission(commission=2.0, margin=2000.0, name='brf')
+# cerebro.addanalyzer(bt.analyzers.SharpeRatio)
+# cerebro.addanalyzer(bt.analyzers.DrawDown)
+# cerebro.addanalyzer(bt.analyzers.DrawDown, _name='hello')
+cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
+# cerebro.addanalyzer(bt.analyzers.Transactions)
 
-# 设置股票模式的手续费
-# cerebro.broker.setcommission(commission=0.005, name='brf')
+# cerebro.run()方法的返回值就是analyzer的结果
+# 为什么是[0]，因为backtrader支持多策略。当只有一个策略时，[0]就是该策略对应的analyzer的结果
+res = cerebro.run()[0]
 
-cerebro.run()
+# 查看analyzer的结果
+# print('SharpeRatio:', res.analyzers.sharperatio.get_analysis())
+# print('DrawDown:', res.analyzers.drawdown.get_analysis())
+# print('DrawDown:', res.analyzers.hello.get_analysis())
+
+# drawdownData = res.analyzers.drawdown.get_analysis()
+# print('========== Draw Down ==========')
+# print('max drawdown: %s %%' % drawdownData['max']['drawdown'])
+# print('max money drawdown: %s %%' % drawdownData['max']['moneydown'])
+
+trading_data = res.analyzers.tradeanalyzer.get_analysis()
+print('==========Trading Analysis========')
+print('===won===')
+# 显示胜率
+print('won ratio:%s' % (
+            trading_data['won']['total'] / float(trading_data['won']['total'] + trading_data['lost']['total'])))
+# 获胜次数
+print('won_hits:%s' % trading_data['won']['total'])
+# 显示损益相关
+print('won_pnl-->total:%s, average:%s, max:%s' %
+      (trading_data['won']['pnl']['total'],
+       trading_data['won']['pnl']['average'],
+       trading_data['won']['pnl']['max'])
+      )
+print('===lost===')
+print('lost_hits:%s' % trading_data['lost']['total'])
+print('lost_pnl-->total:%s, average:%s, max:%s' %
+      (trading_data['lost']['pnl']['total'],
+       trading_data['lost']['pnl']['average'],
+       trading_data['lost']['pnl']['max'])
+      )
+print('===long position===')
+print('lost_hits:%s' % trading_data['long']['total'])
+print('long_pnl-->total:%s, average:%s' %
+      (trading_data['long']['pnl']['total'],
+       trading_data['long']['pnl']['average'])
+      )
+print('===short position===')
+print('short_hits:%s' % trading_data['short']['total'])
+print('short_pnl-->total:%s, average:%s' %
+      (trading_data['short']['pnl']['total'],
+       trading_data['short']['pnl']['average'])
+      )
+
+# print('Transactions:', res.analyzers.transactions.get_analysis())
 
 # 曲线为蜡烛图
 cerebro.plot(style='candle')
-```
-
-![image-20221201154058642](assets/image-20221201154058642.png)
-
-改成股票模式，手续费为万3：
-
-```python
-cerebro.broker.setcommission(commission=0.0003, name='brf')
-```
-
-![image-20221201154314466](assets/image-20221201154321619.png)
-
-![image-20221201154314466](assets/image-20221201154314466.png)
-
-滑点就是冲击成本。
-
-cerebro.broker.set_slippage_fixed(fixed=5)，表示每一买单，都会多花5块钱；如果是卖单，都会少卖5块钱。即每一笔交易都会少10元（一买一卖）。
-
-固定滑点：
-
-cerebro.broker.set_slippage_fixed(fixed=5)
-
-<img src="assets/image-20221201160035027.png" alt="image-20221201160035027" style="zoom:50%;" />
-
-cerebro.broker.set_slippage_perc(perc=0.0005)
-
-<img src="assets/image-20221201160059426.png" alt="image-20221201160059426" style="zoom:50%;" />
-
-### 2. Filler设置和演示
-
