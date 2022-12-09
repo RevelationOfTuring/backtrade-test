@@ -48,16 +48,47 @@ if __name__ == '__main__':
             self.ma15 = bt.indicators.SMA(self.datas[0], period=self.p.period_15)
             # 定义一个line，该line为15日均线与20日均线的差
             self.ma_15_20 = self.ma15 - self.ma20
+            # 生成时间错位的线
+            self.close_1 = self.datas[0].close(-1)
 
         def next(self):
-            # print(self.datas[0].lines.getlinealiases())
+            # 打印datas[0]的column names， 即 ('close', 'low', 'high', 'open', 'volume', 'openinterest', 'datetime')
+            # print(self.data.lines.getlinealiases())
             # 显示每天的date time(unix秒)
             print(self.data.datetime[0])
             # backtrader中一个工具，将unix秒转成日期
             print(bt.num2date(self.data.datetime[0]))
 
+            # 策略自身只含一条datetime线，返回 ('datetime',)
+            # print(self.getlinealiases())
 
-            print('-'*20)
+            # 可以访问明天的时间
+            # print(self.data.datetime.datetime(1))
+            # 但是不能通过self.datetime.datetime(1)访问明天的datetime，会报错
+            # print(self.datetime.datetime(1))
+
+            # 明天的收盘价
+            # print(self.data.close[1])
+            # 昨天的收盘价
+            # print(self.data.close[-1])
+
+            # 回测bar的总数
+            print(self.datas[0].buflen())
+            # 已处理bar总数
+            print(len(self.datas[0]))
+            # 注: 非预加载情况下，len()和buflen()是一致的。都是动态增长。
+            # 如果只有一个数据对象，那么len(self)和len(self.data)是一致的
+            print(len(self))
+
+            # 取最近的5个历史close(不包含今天)
+            print(self.datas[0].close.get(ago=-1, size=5))
+            # 取最近的5个历史close(包含今天)
+            print(self.datas[0].close.get(ago=0, size=5))
+
+            # 打印时间错位线
+            print(self.close_1[0])
+            print(self.datas[0].close[-1])
+            print('-' * 20)
 
             # 如果当前有交易指令在进行，返回
             if self.order:
